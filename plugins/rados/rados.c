@@ -604,6 +604,17 @@ static int uwsgi_rados_request(struct wsgi_request *wsgi_req) {
 		goto end;
 	}
 
+	
+	if (wsgi_req->if_modified_since_len) {
+		time_t ims = uwsgi_parse_http_date(wsgi_req->if_modified_since, wsgi_req->if_modified_since_len);
+		if (stat_mtime <= ims) {
+			if (uwsgi_response_prepare_headers(wsgi_req, "304 Not Modified", 16))
+				return -1;
+			return uwsgi_response_write_headers_do(wsgi_req);
+		}
+	}
+
+
 	if (!uwsgi_strncmp(wsgi_req->method, wsgi_req->method_len, "PROPFIND", 8)) {
 		if (!urmp->allow_propfind) {
 			uwsgi_405(wsgi_req);
